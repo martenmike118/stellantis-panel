@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Stellantis IOP — Control Panel</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#0f0f1e;color:#ddd;min-height:100vh}
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.login-box{background:#16213e;border-radius:16px;padding:36px 28px;width:100%;max-width:360px;border:1px solid #1e2a4a}
+.logo{text-align:center;margin-bottom:28px}
+.logo-icon{font-size:48px;color:#c41e3a}
+.logo h1{font-size:20px;color:white;margin-top:8px;font-weight:600}
+.logo p{font-size:13px;color:#666;margin-top:4px}
+.field{margin-bottom:14px}
+.field label{font-size:12px;color:#888;display:block;margin-bottom:6px}
+.field input{width:100%;padding:12px 14px;background:#0f0f1e;border:1px solid #2a2a4e;border-radius:8px;color:white;font-size:15px;outline:none}
+.field input:focus{border-color:#4fc3f7}
+.btn-login{width:100%;padding:13px;background:#c41e3a;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px}
+.btn-login:hover{background:#a01830}
+.login-err{background:#4d1b1b;color:#ef5350;border-radius:6px;padding:10px;font-size:13px;margin-top:10px;text-align:center;display:none}
+#app{display:none;min-height:100vh;flex-direction:column}
+header{background:#1a1a2e;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #2a2a4e;position:sticky;top:0;z-index:10}
+.hd-left{display:flex;align-items:center;gap:10px}
+.hd-icon{font-size:22px;color:#c41e3a}
+.hd-title{font-size:16px;font-weight:600;color:white}
+.btn-logout{background:transparent;border:1px solid #333;color:#888;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer}
+.btn-logout:hover{color:white;border-color:#555}
+.main{flex:1;padding:16px;max-width:700px;margin:0 auto;width:100%}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.stat{background:#16213e;border-radius:10px;padding:14px;text-align:center;border:1px solid #1e2a4a}
+.stat-n{font-size:26px;font-weight:700;color:white}
+.stat-l{font-size:11px;color:#666;margin-top:2px}
+.card{background:#16213e;border-radius:12px;padding:18px;margin-bottom:16px;border:1px solid #1e2a4a}
+.card-title{font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
+.add-row{display:flex;flex-direction:column;gap:10px}
+.add-row input{padding:11px 14px;background:#0f0f1e;border:1px solid #2a2a4e;border-radius:8px;color:white;font-size:14px;outline:none}
+.add-row input:focus{border-color:#4fc3f7}
+.add-row input::placeholder{color:#444}
+.btn-add{padding:12px;background:#27ae60;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
+.client-item{background:#0f0f1e;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #1a2040}
+.ci-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ci-name{font-size:15px;font-weight:600;color:white}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.b-on{background:#1b4d2e;color:#66bb6a}
+.b-off{background:#4d1b1b;color:#ef5350}
+.b-exp{background:#4d3a1b;color:#ffa726}
+.ci-id{font-family:'Courier New',monospace;font-size:12px;color:#4fc3f7;background:#0a0a18;padding:5px 10px;border-radius:6px;margin-bottom:8px;word-break:break-all}
+.ci-meta{font-size:11px;color:#555;margin-bottom:10px}
+.ci-actions{display:flex;gap:8px;flex-wrap:wrap}
+.ci-actions button{flex:1;min-width:80px;padding:8px;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-dis{background:#e67e22;color:white}
+.btn-en{background:#27ae60;color:white}
+.btn-del{background:#c0392b;color:white}
+.empty{text-align:center;padding:32px;color:#444;font-size:14px}
+.search-input{width:100%;padding:10px 14px;background:#0f0f1e;border:1px solid #2a2a4e;border-radius:8px;color:white;font-size:14px;outline:none;margin-bottom:12px}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;display:none;white-space:nowrap;max-width:90vw;text-align:center}
+.tok{background:#27ae60;color:white}
+.ter{background:#c0392b;color:white}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="logo">
+      <div class="logo-icon">⬡</div>
+      <h1>Stellantis IOP</h1>
+      <p>License Control Panel</p>
+    </div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="admin" autocomplete="username"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="btn-login" onclick="doLogin()">Login</button>
+    <div class="login-err" id="loginErr">Wrong username or password</div>
+  </div>
+</div>
+
+<div id="app" style="display:none;flex-direction:column">
+  <header>
+    <div class="hd-left">
+      <div class="hd-icon">⬡</div>
+      <div class="hd-title">Stellantis IOP — Control Panel</div>
+    </div>
+    <button class="btn-logout" onclick="logout()">Logout</button>
+  </header>
+  <div class="main">
+    <div class="stats">
+      <div class="stat"><div class="stat-n" id="statTotal">0</div><div class="stat-l">Total</div></div>
+      <div class="stat"><div class="stat-n" id="statActive" style="color:#66bb6a">0</div><div class="stat-l">Active</div></div>
+      <div class="stat"><div class="stat-n" id="statOff" style="color:#ef5350">0</div><div class="stat-l">Disabled</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">➕ Activate New Client</div>
+      <div class="add-row">
+        <input type="text" id="newName" placeholder="Client name (e.g. Ahmed Garage)"/>
+        <input type="text" id="newId"   placeholder="Device ID from client"/>
+        <input type="date" id="newExp"  title="Expiry — leave blank for permanent"/>
+        <button class="btn-add" onclick="addClient()">✅  Activate Client</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">👥 Clients</div>
+      <input class="search-input" type="text" id="srch" placeholder="Search by name or ID..." oninput="render()"/>
+      <div id="list"><div class="empty">Loading...</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_USER   = 'admin';
+const ADMIN_PASS   = 'stellantis2024';
+const MASTER_KEY   = '$2a$10$XSyRsZRE0v4UItKeHG9bdent502he9hlu5.DuPTvOmf4i5hqbjaDC';
+const ACCESS_KEY   = '$2a$10$MbFXZgEymfrIvy5s1TIRdu/xJOiig28d2QCOaX1v94t2tl1r1/WFq';
+const BIN_ID       = '69f67aa9aaba882197644d23';
+
+let clients = [];
+
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    load();
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+  }
+}
+
+function logout() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+function toast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (ok ? 'tok' : 'ter');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display='none', 3500);
+}
+
+async function load() {
+  try {
+    const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, {
+      headers: { 'X-Master-Key': MASTER_KEY, 'X-Access-Key': ACCESS_KEY }
+    });
+    const d = await r.json();
+    if (!r.ok) { toast('Load error: ' + (d.message||'unknown'), false); return; }
+    clients = d.record.licenses || [];
+    render();
+    stats();
+    toast('Loaded ' + clients.length + ' client(s)');
+  } catch(e) { toast('Failed: ' + e.message, false); }
+}
+
+async function save() {
+  const r = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Master-Key': MASTER_KEY,
+      'X-Access-Key': ACCESS_KEY
+    },
+    body: JSON.stringify({ licenses: clients })
+  });
+  const d = await r.json();
+  if (!r.ok) throw new Error(d.message || JSON.stringify(d));
+}
+
+async function addClient() {
+  const name = document.getElementById('newName').value.trim();
+  const id   = document.getElementById('newId').value.trim().toUpperCase().replace(/\s/g,'');
+  const exp  = document.getElementById('newExp').value;
+  if (!name) { toast('Enter client name', false); return; }
+  if (!id)   { toast('Enter Device ID', false); return; }
+  if (clients.find(c => c.id === id)) { toast('Device ID already exists', false); return; }
+  clients.push({ name, id, active: true, expires: exp||'', added: new Date().toISOString().split('T')[0] });
+  try {
+    await save();
+    document.getElementById('newName').value = '';
+    document.getElementById('newId').value = '';
+    document.getElementById('newExp').value = '';
+    render(); stats();
+    toast('✅ ' + name + ' activated!');
+  } catch(e) { clients.pop(); toast('Save failed: ' + e.message, false); }
+}
+
+async function toggle(i) {
+  clients[i].active = !clients[i].active;
+  try { await save(); render(); stats(); toast(clients[i].active ? '✅ Enabled' : '⛔ Disabled'); }
+  catch(e) { clients[i].active = !clients[i].active; toast('Failed: ' + e.message, false); }
+}
+
+async function del(i) {
+  if (!confirm('Remove ' + clients[i].name + '?')) return;
+  const rem = clients.splice(i,1);
+  try { await save(); render(); stats(); toast('🗑 Removed'); }
+  catch(e) { clients.splice(i,0,rem[0]); toast('Failed: ' + e.message, false); }
+}
+
+function stats() {
+  const now = new Date();
+  const act = clients.filter(c => c.active && (!c.expires || new Date(c.expires) > now)).length;
+  document.getElementById('statTotal').textContent  = clients.length;
+  document.getElementById('statActive').textContent = act;
+  document.getElementById('statOff').textContent    = clients.length - act;
+}
+
+function render() {
+  const q = (document.getElementById('srch').value||'').toLowerCase();
+  const f = clients.map((c,i) => ({...c,_i:i})).filter(c =>
+    c.name.toLowerCase().includes(q) || c.id.toLowerCase().includes(q));
+  const el = document.getElementById('list');
+  if (!f.length) { el.innerHTML = '<div class="empty">' + (clients.length ? 'No results' : 'No clients yet') + '</div>'; return; }
+  const now = new Date();
+  el.innerHTML = f.map(c => {
+    const exp = c.expires && new Date(c.expires) < now;
+    const badge = !c.active ? '<span class="badge b-off">Disabled</span>'
+                : exp ? '<span class="badge b-exp">Expired</span>'
+                : '<span class="badge b-on">Active</span>';
+    const tb = c.active
+      ? `<button class="btn-dis" onclick="toggle(${c._i})">⛔ Disable</button>`
+      : `<button class="btn-en" onclick="toggle(${c._i})">✅ Enable</button>`;
+    return `<div class="client-item">
+      <div class="ci-top"><span class="ci-name">${c.name}</span>${badge}</div>
+      <div class="ci-id">${c.id}</div>
+      <div class="ci-meta">Added: ${c.added||'—'} · ${c.expires ? 'Expires: '+c.expires : 'No expiry'}</div>
+      <div class="ci-actions">${tb}<button class="btn-del" onclick="del(${c._i})">🗑 Remove</button></div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
