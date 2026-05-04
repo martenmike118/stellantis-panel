@@ -38,7 +38,8 @@ header{background:#1a1a2e;padding:14px 20px;display:flex;align-items:center;just
 .add-row input{padding:11px 14px;background:#0f0f1e;border:1px solid #2a2a4e;border-radius:8px;color:white;font-size:14px;outline:none}
 .add-row input:focus{border-color:#4fc3f7}
 .add-row input::placeholder{color:#444}
-.btn-add{padding:12px;background:#27ae60;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
+.btn-green{padding:12px;background:#27ae60;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
+.btn-blue{padding:12px;background:#2980b9;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
 .client-item{background:#0f0f1e;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #1a2040}
 .ci-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
 .ci-name{font-size:15px;font-weight:600;color:white}
@@ -57,6 +58,10 @@ header{background:#1a1a2e;padding:14px 20px;display:flex;align-items:center;just
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;display:none;white-space:nowrap;max-width:90vw;text-align:center}
 .tok{background:#27ae60;color:white}
 .ter{background:#c0392b;color:white}
+.cred-show{background:#0a0a18;border-radius:8px;padding:12px;margin-bottom:10px;font-size:13px}
+.cred-show span{color:#4fc3f7;font-weight:600}
+.info{font-size:12px;color:#666;margin-top:8px;line-height:1.6}
+.info b{color:#aaa}
 </style>
 </head>
 <body>
@@ -90,27 +95,50 @@ header{background:#1a1a2e;padding:14px 20px;display:flex;align-items:center;just
     <button class="btn-logout" onclick="logout()">Logout</button>
   </header>
   <div class="main">
+
+    <!-- Stats -->
     <div class="stats">
       <div class="stat"><div class="stat-n" id="statTotal">0</div><div class="stat-l">Total</div></div>
       <div class="stat"><div class="stat-n" id="statActive" style="color:#66bb6a">0</div><div class="stat-l">Active</div></div>
       <div class="stat"><div class="stat-n" id="statOff" style="color:#ef5350">0</div><div class="stat-l">Disabled</div></div>
     </div>
 
+    <!-- ── Stellantis Credentials ── -->
+    <div class="card">
+      <div class="card-title">🔑 Stellantis Login Credentials</div>
+      <div class="cred-show">
+        Current Username: <span id="showUser">Loading...</span><br/>
+        Current Password: <span id="showPass">••••••••</span>
+        <button onclick="togglePass()" style="background:transparent;border:none;color:#4fc3f7;cursor:pointer;font-size:12px;margin-left:8px">👁 Show</button>
+      </div>
+      <div class="add-row">
+        <input type="text"     id="newUser" placeholder="New Stellantis username/email"/>
+        <input type="password" id="newPass" placeholder="New Stellantis password"/>
+        <button class="btn-blue" onclick="saveCredentials()">💾  Update Credentials</button>
+      </div>
+      <div class="info">
+        ⚠️ <b>Important:</b> After updating credentials here, all clients will automatically use the new login next time they open the app. No need to send a new EXE!
+      </div>
+    </div>
+
+    <!-- ── Add Client ── -->
     <div class="card">
       <div class="card-title">➕ Activate New Client</div>
       <div class="add-row">
         <input type="text" id="newName" placeholder="Client name (e.g. Ahmed Garage)"/>
         <input type="text" id="newId"   placeholder="Device ID from client"/>
         <input type="date" id="newExp"  title="Expiry — leave blank for permanent"/>
-        <button class="btn-add" onclick="addClient()">✅  Activate Client</button>
+        <button class="btn-green" onclick="addClient()">✅  Activate Client</button>
       </div>
     </div>
 
+    <!-- ── Client List ── -->
     <div class="card">
       <div class="card-title">👥 Clients</div>
       <input class="search-input" type="text" id="srch" placeholder="Search by name or ID..." oninput="render()"/>
       <div id="list"><div class="empty">Loading...</div></div>
     </div>
+
   </div>
 </div>
 
@@ -124,6 +152,8 @@ const SB_KEY     = 'sb_publishable_qzwkXxJWm6GqAwogA8CK1A_KEkv9sAA';
 
 const sb = supabase.createClient(SB_URL, SB_KEY);
 let clients = [];
+let showingPass = false;
+let realPass = '';
 
 function doLogin() {
   const u = document.getElementById('loginUser').value.trim();
@@ -131,7 +161,8 @@ function doLogin() {
   if (u === ADMIN_USER && p === ADMIN_PASS) {
     document.getElementById('loginScreen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
-    load();
+    loadCredentials();
+    loadClients();
   } else {
     document.getElementById('loginErr').style.display = 'block';
   }
@@ -150,13 +181,52 @@ function toast(msg, ok=true) {
   setTimeout(() => t.style.display='none', 3500);
 }
 
-async function load() {
+// ── Credentials ──
+async function loadCredentials() {
+  const { data, error } = await sb.from('credentials').select('*').eq('id', 1).single();
+  if (error || !data) {
+    // Create default credentials row if not exists
+    await sb.from('credentials').insert({ id: 1, username: 'redbluwitech@gmail.com', password: 'QQ2024qq' });
+    document.getElementById('showUser').textContent = 'redbluwitech@gmail.com';
+    realPass = 'QQ2024qq';
+    return;
+  }
+  document.getElementById('showUser').textContent = data.username;
+  realPass = data.password;
+  document.getElementById('showPass').textContent = '••••••••';
+  showingPass = false;
+}
+
+function togglePass() {
+  showingPass = !showingPass;
+  document.getElementById('showPass').textContent = showingPass ? realPass : '••••••••';
+}
+
+async function saveCredentials() {
+  const u = document.getElementById('newUser').value.trim();
+  const p = document.getElementById('newPass').value.trim();
+  if (!u && !p) { toast('Enter new username or password', false); return; }
+
+  const updates = {};
+  if (u) updates.username = u;
+  if (p) updates.password = p;
+
+  const { error } = await sb.from('credentials').upsert({ id: 1, ...updates });
+  if (error) { toast('Failed: ' + error.message, false); return; }
+
+  document.getElementById('newUser').value = '';
+  document.getElementById('newPass').value = '';
+  await loadCredentials();
+  toast('✅ Credentials updated! All clients will use new login automatically.');
+}
+
+// ── Clients ──
+async function loadClients() {
   const { data, error } = await sb.from('licenses').select('*').order('created_at', {ascending: false});
   if (error) { toast('Load error: ' + error.message, false); return; }
   clients = data || [];
   render();
   stats();
-  toast('Loaded ' + clients.length + ' client(s)');
 }
 
 async function addClient() {
@@ -173,14 +243,14 @@ async function addClient() {
   document.getElementById('newName').value = '';
   document.getElementById('newId').value = '';
   document.getElementById('newExp').value = '';
-  await load();
+  await loadClients();
   toast('✅ ' + name + ' activated!');
 }
 
 async function toggle(id, current) {
   const { error } = await sb.from('licenses').update({ active: !current }).eq('id', id);
   if (error) { toast('Failed: ' + error.message, false); return; }
-  await load();
+  await loadClients();
   toast(!current ? '✅ Enabled' : '⛔ Disabled');
 }
 
@@ -188,7 +258,7 @@ async function del(id, name) {
   if (!confirm('Remove ' + name + '?')) return;
   const { error } = await sb.from('licenses').delete().eq('id', id);
   if (error) { toast('Failed: ' + error.message, false); return; }
-  await load();
+  await loadClients();
   toast('🗑 Removed');
 }
 
@@ -214,7 +284,7 @@ function render() {
                 : '<span class="badge b-on">Active</span>';
     const tb = c.active
       ? `<button class="btn-dis" onclick="toggle('${c.id}', true)">⛔ Disable</button>`
-      : `<button class="btn-en" onclick="toggle('${c.id}', false)">✅ Enable</button>`;
+      : `<button class="btn-en"  onclick="toggle('${c.id}', false)">✅ Enable</button>`;
     return `<div class="client-item">
       <div class="ci-top"><span class="ci-name">${c.name}</span>${badge}</div>
       <div class="ci-id">${c.device_id}</div>
