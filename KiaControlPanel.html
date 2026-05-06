@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Kia TechInfo — Control Panel</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#080818;color:#ddd;min-height:100vh}
+#loginScreen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+.login-box{background:#0f0f2a;border-radius:16px;padding:36px 28px;width:100%;max-width:360px;border:1px solid #1a1a4a}
+.logo{text-align:center;margin-bottom:28px}
+.logo-icon{font-size:48px}
+.logo h1{font-size:20px;color:white;margin-top:8px;font-weight:600}
+.logo p{font-size:13px;color:#666;margin-top:4px}
+.field{margin-bottom:14px}
+.field label{font-size:12px;color:#888;display:block;margin-bottom:6px}
+.field input{width:100%;padding:12px 14px;background:#080818;border:1px solid #1a1a4a;border-radius:8px;color:white;font-size:15px;outline:none}
+.field input:focus{border-color:#4466FF}
+.btn-login{width:100%;padding:13px;background:#4466FF;color:white;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px}
+.login-err{background:#4d1b1b;color:#ef5350;border-radius:6px;padding:10px;font-size:13px;margin-top:10px;text-align:center;display:none}
+#app{display:none;min-height:100vh;flex-direction:column}
+header{background:#0f0f2a;padding:14px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #1a1a4a;position:sticky;top:0;z-index:10}
+.hd-left{display:flex;align-items:center;gap:10px}
+.hd-title{font-size:16px;font-weight:600;color:white}
+.btn-logout{background:transparent;border:1px solid #333;color:#888;padding:6px 14px;border-radius:6px;font-size:12px;cursor:pointer}
+.main{flex:1;padding:16px;max-width:700px;margin:0 auto;width:100%}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.stat{background:#0f0f2a;border-radius:10px;padding:14px;text-align:center;border:1px solid #1a1a4a}
+.stat-n{font-size:26px;font-weight:700;color:white}
+.stat-l{font-size:11px;color:#666;margin-top:2px}
+.card{background:#0f0f2a;border-radius:12px;padding:18px;margin-bottom:16px;border:1px solid #1a1a4a}
+.card-title{font-size:12px;color:#888;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px}
+.add-row{display:flex;flex-direction:column;gap:10px}
+.add-row input{padding:11px 14px;background:#080818;border:1px solid #1a1a4a;border-radius:8px;color:white;font-size:14px;outline:none}
+.add-row input::placeholder{color:#444}
+.btn-green{padding:12px;background:#27ae60;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
+.btn-blue{padding:12px;background:#4466FF;color:white;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;width:100%}
+.client-item{background:#080818;border-radius:10px;padding:14px;margin-bottom:10px;border:1px solid #1a1a4a}
+.ci-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.ci-name{font-size:15px;font-weight:600;color:white}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.b-on{background:#1b4d2e;color:#66bb6a}
+.b-off{background:#4d1b1b;color:#ef5350}
+.ci-id{font-family:'Courier New',monospace;font-size:12px;color:#4466FF;background:#050510;padding:5px 10px;border-radius:6px;margin-bottom:8px;word-break:break-all}
+.ci-meta{font-size:11px;color:#555;margin-bottom:10px}
+.ci-actions{display:flex;gap:8px}
+.ci-actions button{flex:1;padding:8px;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer}
+.btn-dis{background:#e67e22;color:white}
+.btn-en{background:#27ae60;color:white}
+.btn-del{background:#c0392b;color:white}
+.empty{text-align:center;padding:32px;color:#444;font-size:14px}
+.search-input{width:100%;padding:10px 14px;background:#080818;border:1px solid #1a1a4a;border-radius:8px;color:white;font-size:14px;outline:none;margin-bottom:12px}
+.cred-show{background:#050510;border-radius:8px;padding:12px;margin-bottom:10px;font-size:13px}
+.cred-show span{color:#4466FF;font-weight:600}
+.info{font-size:12px;color:#666;margin-top:8px;line-height:1.6}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:12px 24px;border-radius:10px;font-size:14px;font-weight:600;z-index:999;display:none;white-space:nowrap;max-width:90vw;text-align:center}
+.tok{background:#27ae60;color:white}
+.ter{background:#c0392b;color:white}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="logo">
+      <div class="logo-icon">🔧</div>
+      <h1>Kia TechInfo</h1>
+      <p>License Control Panel</p>
+    </div>
+    <div class="field">
+      <label>Username</label>
+      <input type="text" id="loginUser" placeholder="admin"/>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="btn-login" onclick="doLogin()">Login</button>
+    <div class="login-err" id="loginErr">Wrong username or password</div>
+  </div>
+</div>
+
+<div id="app" style="display:none;flex-direction:column">
+  <header>
+    <div class="hd-left">
+      <div style="font-size:22px">🔧</div>
+      <div class="hd-title">Kia TechInfo — Control Panel</div>
+    </div>
+    <button class="btn-logout" onclick="logout()">Logout</button>
+  </header>
+  <div class="main">
+
+    <div class="stats">
+      <div class="stat"><div class="stat-n" id="statTotal">0</div><div class="stat-l">Total</div></div>
+      <div class="stat"><div class="stat-n" id="statActive" style="color:#66bb6a">0</div><div class="stat-l">Active</div></div>
+      <div class="stat"><div class="stat-n" id="statOff" style="color:#ef5350">0</div><div class="stat-l">Disabled</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔑 Kia Login Credentials</div>
+      <div class="cred-show">
+        Username: <span id="showUser">Loading...</span><br/>
+        Password: <span id="showPass">••••••••</span>
+        <button onclick="togglePass()" style="background:transparent;border:none;color:#4466FF;cursor:pointer;font-size:12px;margin-left:8px">👁 Show</button>
+      </div>
+      <div class="add-row">
+        <input type="text"     id="newUser" placeholder="New Kia username"/>
+        <input type="password" id="newPass" placeholder="New Kia password"/>
+        <button class="btn-blue" onclick="saveCredentials()">💾  Update Credentials</button>
+      </div>
+      <div class="info">⚠️ After updating, all clients will use the new login automatically.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">➕ Activate New Client</div>
+      <div class="add-row">
+        <input type="text" id="newName" placeholder="Client name"/>
+        <input type="text" id="newId"   placeholder="Device ID from client"/>
+        <input type="date" id="newExp"/>
+        <button class="btn-green" onclick="addClient()">✅  Activate Client</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">👥 Clients</div>
+      <input class="search-input" type="text" id="srch" placeholder="Search..." oninput="render()"/>
+      <div id="list"><div class="empty">Loading...</div></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'kia2024';
+const SB_URL     = 'https://vhdokfvlzxvqijytqpgd.supabase.co';
+const SB_KEY     = 'sb_publishable_qzwkXxJWm6GqAwogA8CK1A_KEkv9sAA';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+let clients = [];
+let showingPass = false;
+let realPass = '';
+
+function doLogin() {
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    loadCredentials();
+    loadClients();
+  } else {
+    document.getElementById('loginErr').style.display = 'block';
+  }
+}
+
+function logout() {
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('app').style.display = 'none';
+}
+
+function toast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (ok ? 'tok' : 'ter');
+  t.style.display = 'block';
+  setTimeout(() => t.style.display='none', 3500);
+}
+
+async function loadCredentials() {
+  const { data } = await sb.from('kia_credentials').select('*').eq('id', 1).single();
+  if (!data) return;
+  document.getElementById('showUser').textContent = data.username;
+  realPass = data.password;
+}
+
+function togglePass() {
+  showingPass = !showingPass;
+  document.getElementById('showPass').textContent = showingPass ? realPass : '••••••••';
+}
+
+async function saveCredentials() {
+  const u = document.getElementById('newUser').value.trim();
+  const p = document.getElementById('newPass').value.trim();
+  if (!u && !p) { toast('Enter new username or password', false); return; }
+  const updates = { id: 1 };
+  if (u) updates.username = u;
+  if (p) updates.password = p;
+  const { error } = await sb.from('kia_credentials').upsert(updates);
+  if (error) { toast('Failed: ' + error.message, false); return; }
+  document.getElementById('newUser').value = '';
+  document.getElementById('newPass').value = '';
+  await loadCredentials();
+  toast('✅ Credentials updated!');
+}
+
+async function loadClients() {
+  const { data, error } = await sb.from('kia_licenses').select('*').order('created_at', {ascending: false});
+  if (error) { toast('Error: ' + error.message, false); return; }
+  clients = data || [];
+  render(); stats();
+  toast('Loaded ' + clients.length + ' client(s)');
+}
+
+async function addClient() {
+  const name = document.getElementById('newName').value.trim();
+  const id   = document.getElementById('newId').value.trim().toUpperCase().replace(/\s/g,'');
+  const exp  = document.getElementById('newExp').value || null;
+  if (!name) { toast('Enter client name', false); return; }
+  if (!id)   { toast('Enter Device ID', false); return; }
+  if (clients.find(c => c.device_id === id)) { toast('Device ID already exists', false); return; }
+  const { error } = await sb.from('kia_licenses').insert({ name, device_id: id, active: true, expires: exp });
+  if (error) { toast('Failed: ' + error.message, false); return; }
+  document.getElementById('newName').value = '';
+  document.getElementById('newId').value = '';
+  document.getElementById('newExp').value = '';
+  await loadClients();
+  toast('✅ ' + name + ' activated!');
+}
+
+async function toggle(id, current) {
+  const { error } = await sb.from('kia_licenses').update({ active: !current }).eq('id', id);
+  if (error) { toast('Failed: ' + error.message, false); return; }
+  await loadClients();
+  toast(!current ? '✅ Enabled' : '⛔ Disabled');
+}
+
+async function del(id, name) {
+  if (!confirm('Remove ' + name + '?')) return;
+  const { error } = await sb.from('kia_licenses').delete().eq('id', id);
+  if (error) { toast('Failed: ' + error.message, false); return; }
+  await loadClients();
+  toast('🗑 Removed');
+}
+
+function stats() {
+  const now = new Date();
+  const act = clients.filter(c => c.active && (!c.expires || new Date(c.expires) > now)).length;
+  document.getElementById('statTotal').textContent  = clients.length;
+  document.getElementById('statActive').textContent = act;
+  document.getElementById('statOff').textContent    = clients.length - act;
+}
+
+function render() {
+  const q = (document.getElementById('srch').value||'').toLowerCase();
+  const f = clients.filter(c => c.name.toLowerCase().includes(q) || c.device_id.toLowerCase().includes(q));
+  const el = document.getElementById('list');
+  if (!f.length) { el.innerHTML = '<div class="empty">' + (clients.length ? 'No results' : 'No clients yet') + '</div>'; return; }
+  const now = new Date();
+  el.innerHTML = f.map(c => {
+    const exp = c.expires && new Date(c.expires) < now;
+    const badge = !c.active ? '<span class="badge b-off">Disabled</span>' : exp ? '<span class="badge b-off">Expired</span>' : '<span class="badge b-on">Active</span>';
+    const tb = c.active
+      ? `<button class="btn-dis" onclick="toggle('${c.id}', true)">⛔ Disable</button>`
+      : `<button class="btn-en"  onclick="toggle('${c.id}', false)">✅ Enable</button>`;
+    return `<div class="client-item">
+      <div class="ci-top"><span class="ci-name">${c.name}</span>${badge}</div>
+      <div class="ci-id">${c.device_id}</div>
+      <div class="ci-meta">Added: ${c.created_at?.split('T')[0]||'—'} · ${c.expires ? 'Expires: '+c.expires : 'No expiry'}</div>
+      <div class="ci-actions">${tb}<button class="btn-del" onclick="del('${c.id}','${c.name}')">🗑 Remove</button></div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
